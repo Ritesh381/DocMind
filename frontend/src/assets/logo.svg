@@ -1,0 +1,57 @@
+<svg width="100%" viewBox="0 0 680 680" role="img" xmlns="http://www.w3.org/2000/svg" style="">
+  <title style="fill:rgb(0, 0, 0);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">Search chat logo</title>
+  <desc style="fill:rgb(0, 0, 0);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">A white speech bubble containing a purple magnifying glass with an eye-like lens, and stacked text lines to the right</desc>
+
+  <defs>
+    <linearGradient id="bubbleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#f0eaff" stop-opacity="1"/>
+    </linearGradient>
+    <linearGradient id="lensGrad" x1="20%" y1="20%" x2="80%" y2="80%">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#4c1d95"/>
+    </linearGradient>
+    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#5b21b6"/>
+    </linearGradient>
+    <filter id="softShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#5b21b6" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Speech bubble shape -->
+  <g filter="url(#softShadow)" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+    <!-- Main bubble body -->
+    <path d="M120,80 Q100,80 85,95 L85,510 Q85,530 105,540 L380,540 Q395,540 408,530 L545,540 Q570,540 585,515 L585,95 Q585,80 565,80 Z" fill="url(#bubbleGrad)" style="stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <!-- Tail -->
+    <path d="M105,540 L130,620 L220,540 Z" fill="url(#bubbleGrad)" style="stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  </g>
+
+  <!-- Magnifying glass handle -->
+  <line x1="230" y1="390" x2="170" y2="460" stroke="#4c1d95" stroke-width="48" stroke-linecap="round" style="fill:rgb(0, 0, 0);stroke:rgb(76, 29, 149);color:rgb(255, 255, 255);stroke-width:48px;stroke-linecap:round;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <!-- Handle shine -->
+  <line x1="230" y1="390" x2="175" y2="450" stroke="#6d28d9" stroke-width="20" stroke-linecap="round" opacity="0.5" style="fill:rgb(0, 0, 0);stroke:rgb(109, 40, 217);color:rgb(255, 255, 255);stroke-width:20px;stroke-linecap:round;stroke-linejoin:miter;opacity:0.5;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- Outer ring of magnifying glass -->
+  <circle cx="310" cy="290" r="130" fill="none" stroke="url(#ringGrad)" stroke-width="36" style="fill:none;color:rgb(255, 255, 255);stroke-width:36px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- Inner glass fill (pale) -->
+  <circle cx="310" cy="290" r="94" fill="#e9d8ff" opacity="0.6" style="fill:rgb(233, 216, 255);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.6;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- Eye/lens inside glass -->
+  <circle cx="310" cy="290" r="70" fill="url(#lensGrad)" style="stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <!-- Lens highlight -->
+  <circle cx="284" cy="265" r="22" fill="#ffffff" opacity="0.35" style="fill:rgb(255, 255, 255);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.35;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <circle cx="282" cy="263" r="10" fill="#ffffff" opacity="0.6" style="fill:rgb(255, 255, 255);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.6;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- Lines (text representation) to the right of magnifying glass -->
+  <!-- Line 1 - shortest (top) -->
+  <rect x="430" y="195" width="100" height="26" rx="13" fill="#6d28d9" opacity="0.7" style="fill:rgb(109, 40, 217);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.7;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <!-- Line 2 - longest -->
+  <rect x="430" y="245" width="130" height="26" rx="13" fill="#5b21b6" opacity="0.85" style="fill:rgb(91, 33, 182);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.85;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <!-- Line 3 - medium -->
+  <rect x="430" y="295" width="120" height="26" rx="13" fill="#5b21b6" opacity="85" style="fill:rgb(91, 33, 182);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <!-- Line 4 - shorter (bottom) -->
+  <rect x="430" y="345" width="100" height="26" rx="13" fill="#6d28d9" opacity="0.7" style="fill:rgb(109, 40, 217);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.7;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+</svg>

@@ -1,0 +1,22 @@
+{
+  "name": "rag-backend",
+  "version": "1.0.0",
+  "description": "RAG-powered document Q&A backend",
+  "license": "ISC",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@pinecone-database/pinecone": "^7.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
+    "express": "^5.1.0",
+    "multer": "^2.0.1",
+    "openai": "^6.37.0",
+    "pdf-parse": "^1.1.1",
+    "uuid": "^11.1.0"
+  }
+}
