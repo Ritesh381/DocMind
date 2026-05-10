@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import './App.css'
 
-const API_BASE = import.meta.env.BACKEND || 'http://localhost:3001/api'
+const API_BASE = import.meta.env.VITE_BACKEND || 'http://localhost:3001/api'
 
 interface Source {
   page: number
