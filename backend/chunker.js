@@ -1,48 +1,70 @@
 import { v4 as uuidv4 } from "uuid";
 
 /**
- * CHUNKING STRATEGY: Recursive Character Text Splitting with Overlap
- * ===================================================================
+ * CHUNKING STRATEGY: Advanced Semantic + Metadata-Aware Chunking
+ * ===============================================================
  *
- * This module implements a recursive character-level text splitting strategy,
- * inspired by LangChain's RecursiveCharacterTextSplitter.
+ * PRD §6.3 — Advanced Chunking System
  *
- * HOW IT WORKS:
- * 1. The document text is first split by pages (using page breaks from PDF parsing).
- * 2. Each page's text is then split into chunks of a target size (~800 characters)
- *    using a hierarchy of separators: paragraphs → sentences → words.
- * 3. An overlap of ~150 characters is maintained between adjacent chunks to
- *    preserve context across chunk boundaries.
+ * Enhancements over the basic recursive splitter:
  *
- * WHY THIS STRATEGY:
- * - Paragraph-first splitting preserves semantic coherence within chunks.
- * - Sentence-level fallback ensures no chunk exceeds the target size.
- * - Overlap prevents information loss at chunk boundaries, improving retrieval.
- * - Page metadata is preserved for citation purposes.
+ * 1. SECTION-AWARE: Detects markdown headings, numbered headings, and
+ *    ALL-CAPS lines as section boundaries and stores the current section
+ *    title in chunk metadata.
+ *
+ * 2. METADATA-RICH: Every chunk carries:
+ *      chunk_id   — unique stable identifier
+ *      page       — source page number
+ *      section    — inferred section/heading title
+ *      source     — original filename (docName)
+ *      docId      — document UUID
+ *      userId     — tenant isolation key
+ *
+ * 3. RECURSIVE SPLITTING: Same hierarchy as before (paragraph → sentence → word)
+ *    with overlap, but now running per-section rather than per-page for tighter
+ *    semantic coherence.
  *
  * PARAMETERS:
- * - CHUNK_SIZE: 800 characters (balances semantic density vs embedding quality)
- * - CHUNK_OVERLAP: 150 characters (enough context bleed for boundary queries)
+ * - CHUNK_SIZE:    800 characters
+ * - CHUNK_OVERLAP: 150 characters
  */
 
 const CHUNK_SIZE = 800;
 const CHUNK_OVERLAP = 150;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Section Detection
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Split text recursively using a hierarchy of separators.
- *
- * @param {string} text
- * @param {number} chunkSize
- * @param {number} overlap
- * @returns {string[]}
+ * Returns true if a line looks like a section heading.
+ * Matches:  # Heading, ## Heading, 1. Title, 1.2 Title, ALL CAPS (≥4 chars)
  */
+function isSectionHeading(line) {
+  if (!line || line.trim().length === 0) return false;
+  const trimmed = line.trim();
+  if (/^#{1,6}\s+\S/.test(trimmed)) return true;
+  if (/^\d+(\.\d+)*\.?\s+[A-Z]/.test(trimmed)) return true;
+  if (trimmed.length >= 4 && trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed)) return true;
+  return false;
+}
+
+/**
+ * Extract the heading text (strips markdown # characters and leading numbers).
+ */
+function extractHeadingText(line) {
+  return line.trim().replace(/^#{1,6}\s+/, "").replace(/^\d+(\.\d+)*\.?\s+/, "").trim();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Recursive Character Splitter (unchanged logic, used internally)
+// ─────────────────────────────────────────────────────────────────────────────
+
 function recursiveSplit(text, chunkSize = CHUNK_SIZE, overlap = CHUNK_OVERLAP) {
-  // If text fits in one chunk, return it
   if (text.length <= chunkSize) {
     return [text.trim()].filter((t) => t.length > 0);
   }
 
-  // Try splitting by paragraphs first, then sentences, then words
   const separators = ["\n\n", "\n", ". ", " "];
 
   for (const sep of separators) {
@@ -53,13 +75,10 @@ function recursiveSplit(text, chunkSize = CHUNK_SIZE, overlap = CHUNK_OVERLAP) {
     let currentChunk = "";
 
     for (const part of parts) {
-      const candidate = currentChunk
-        ? currentChunk + sep + part
-        : part;
+      const candidate = currentChunk ? currentChunk + sep + part : part;
 
       if (candidate.length > chunkSize && currentChunk.length > 0) {
         chunks.push(currentChunk.trim());
-        // Start next chunk with overlap from the end of the current one
         const overlapText = currentChunk.slice(-overlap);
         currentChunk = overlapText + sep + part;
       } else {
@@ -84,59 +103,107 @@ function recursiveSplit(text, chunkSize = CHUNK_SIZE, overlap = CHUNK_OVERLAP) {
   return chunks.filter((t) => t.length > 0);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Section-Aware Segmentation
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Process a parsed document into chunks ready for vector storage.
+ * Split page text into { section, text } segments by detecting headings.
+ *
+ * @param {string} pageText
+ * @returns {Array<{section: string, text: string}>}
+ */
+function splitIntoSections(pageText) {
+  const lines = pageText.split("\n");
+  const sections = [];
+  let currentSection = "Introduction";
+  let currentLines = [];
+
+  for (const line of lines) {
+    if (isSectionHeading(line)) {
+      if (currentLines.join("\n").trim().length > 0) {
+        sections.push({ section: currentSection, text: currentLines.join("\n").trim() });
+      }
+      currentSection = extractHeadingText(line);
+      currentLines = [];
+    } else {
+      currentLines.push(line);
+    }
+  }
+
+  if (currentLines.join("\n").trim().length > 0) {
+    sections.push({ section: currentSection, text: currentLines.join("\n").trim() });
+  }
+
+  return sections.length > 0 ? sections : [{ section: "Content", text: pageText }];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Export
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Process a parsed document into metadata-rich chunks ready for vector storage.
+ *
+ * Each chunk includes:
+ *   id (chunk_id), chunk_text, page, section, docId, docName, userId
  *
  * @param {string} text - Full document text
  * @param {string} docId - Unique document identifier
  * @param {string} docName - Original filename
- * @param {string} userId - User ID
- * @param {Array<{pageNum: number, text: string}>|null} pages - Optional page-level splits
- * @returns {Array<{id: string, chunk_text: string, page: number, docId: string, docName: string, userId: string}>}
+ * @param {string} userId - User ID for tenant isolation
+ * @param {Array<{pageNum: number, text: string}>|null} pages - Page-level splits
+ * @returns {Array}
  */
 function chunkDocument(text, docId, docName, userId, pages = null) {
   const allChunks = [];
+  let chunkIndex = 0;
 
-  if (pages && pages.length > 0) {
-    // Process page by page to preserve page numbers
-    for (const page of pages) {
-      if (!page.text || page.text.trim().length === 0) continue;
+  const processPage = (pageText, pageNum) => {
+    if (!pageText || pageText.trim().length === 0) return;
 
-      const textChunks = recursiveSplit(page.text);
+    const sections = splitIntoSections(pageText);
+
+    for (const { section, text: sectionText } of sections) {
+      const textChunks = recursiveSplit(sectionText);
       for (const chunkText of textChunks) {
+        if (chunkText.trim().length === 0) continue;
+        chunkIndex++;
         allChunks.push({
           id: uuidv4(),
           chunk_text: chunkText,
-          page: page.pageNum,
+          page: pageNum,
+          section: section || "Content",
           docId,
           docName,
           userId,
+          // chunk_id is stored as metadata in Pinecone
+          chunk_id: `chunk_${chunkIndex}`,
         });
       }
     }
-  } else {
-    // No page info — treat as a single-page document
-    const textChunks = recursiveSplit(text);
-    for (const chunkText of textChunks) {
-      allChunks.push({
-        id: uuidv4(),
-        chunk_text: chunkText,
-        page: 1,
-        docId,
-        docName,
-        userId,
-      });
+  };
+
+  if (pages && pages.length > 0) {
+    for (const page of pages) {
+      processPage(page.text, page.pageNum);
     }
+  } else {
+    processPage(text, 1);
   }
 
+  const avgLen =
+    allChunks.length > 0
+      ? Math.round(allChunks.reduce((s, c) => s + c.chunk_text.length, 0) / allChunks.length)
+      : 0;
+
   console.log(
-    `Chunked "${docName}" into ${allChunks.length} chunks (avg ${Math.round(
-      allChunks.reduce((sum, c) => sum + c.chunk_text.length, 0) /
-        allChunks.length
-    )} chars/chunk)`
+    `Chunked "${docName}" into ${allChunks.length} chunks across ${
+      pages?.length || 1
+    } page(s) (avg ${avgLen} chars/chunk)`
   );
 
   return allChunks;
 }
 
-export { chunkDocument, recursiveSplit, CHUNK_SIZE, CHUNK_OVERLAP };
+export { chunkDocument, recursiveSplit, splitIntoSections, CHUNK_SIZE, CHUNK_OVERLAP };

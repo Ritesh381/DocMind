@@ -8,6 +8,17 @@ interface Source {
   score: number
   preview: string
   docName: string
+  section?: string
+  chunk_id?: string
+}
+
+interface PipelineInfo {
+  originalQuery?: string
+  rewrittenQuery?: string
+  queriesGenerated?: number
+  chunksRetrieved?: number
+  chunksAfterJudge?: number
+  correctiveAttempts?: number
 }
 
 interface Message {
@@ -15,6 +26,7 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   sources?: Source[]
+  pipeline?: PipelineInfo
 }
 
 interface Chat {
@@ -32,18 +44,30 @@ interface DocInfo {
   textLength: number
 }
 
+// §6.8 — Indexing steps shown to the user during upload
+const UPLOAD_STEPS = [
+  '📥 Uploading document...',
+  '🔍 Parsing document...',
+  '✂️  Chunking into semantic segments...',
+  '🧠 Creating embeddings...',
+  '💾 Saving to vector database...',
+  '✅ Indexing complete!',
+]
+
 function App() {
   const [docs, setDocs] = useState<DocInfo[]>([])
   const [chats, setChats] = useState<Chat[]>([])
   const [currentChatId, setCurrentChatId] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
-  
+
   const [input, setInput] = useState('')
   const [isUploading, setIsUploading] = useState(false)
-  const [uploadStep, setUploadStep] = useState('')
+  const [uploadStepIndex, setUploadStepIndex] = useState(0)
   const [isThinking, setIsThinking] = useState(false)
+  const [thinkingStep, setThinkingStep] = useState('')
   const [error, setError] = useState('')
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set())
+  const [expandedPipeline, setExpandedPipeline] = useState<Set<string>>(new Set())
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -52,12 +76,10 @@ function App() {
 
   // Initialization & Local Storage
   useEffect(() => {
-    // Theme setup
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       setTheme('dark')
     }
-    
-    // Auth logic
+
     const storedUserId = localStorage.getItem('docmind-userid')
     if (!storedUserId) {
       fetch(`${API_BASE}/init`).then(res => res.json()).then(data => {
@@ -68,15 +90,11 @@ function App() {
       setUserId(storedUserId)
     }
 
-    // Load docs from Local Storage
     const storedDocs = localStorage.getItem('docmind-docs')
     if (storedDocs) {
-      try {
-        setDocs(JSON.parse(storedDocs))
-      } catch (e) {}
+      try { setDocs(JSON.parse(storedDocs)) } catch (e) {}
     }
 
-    // Load chats from Local Storage
     const storedChats = localStorage.getItem('docmind-chats')
     let loadedChats: Chat[] = []
     if (storedChats) {
@@ -86,7 +104,7 @@ function App() {
       } catch (e) {}
     }
 
-    const path = window.location.pathname.slice(1) // remove leading '/'
+    const path = window.location.pathname.slice(1)
     if (path && loadedChats.find(c => c.id === path)) {
       setCurrentChatId(path)
     } else if (loadedChats.length > 0) {
@@ -108,37 +126,30 @@ function App() {
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
-  // Update theme
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
 
-  // Save chats to Local Storage
   useEffect(() => {
     if (chats.length > 0) {
       localStorage.setItem('docmind-chats', JSON.stringify(chats))
     }
   }, [chats])
 
-  // Auto-scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chats, currentChatId, isThinking])
 
-  // Save docs to Local Storage
   useEffect(() => {
     localStorage.setItem('docmind-docs', JSON.stringify(docs))
   }, [docs])
 
-  // Clear error after 5 seconds
   useEffect(() => {
     if (error) {
-      const timer = setTimeout(() => setError(''), 5000)
+      const timer = setTimeout(() => setError(''), 6000)
       return () => clearTimeout(timer)
     }
   }, [error])
-
-
 
   // --- Chat Functions ---
   const handleNewChat = () => {
@@ -189,17 +200,23 @@ function App() {
     }))
   }
 
-  // --- Document Functions ---
+  // --- Document Upload with §6.8 step-by-step status ---
   const handleUpload = useCallback(async (file: File) => {
     setIsUploading(true)
-    setUploadStep('Parsing document...')
+    setUploadStepIndex(0)
     setError('')
+
+    // Animate through steps while the actual upload runs
+    let stepIdx = 0
+    const stepInterval = setInterval(() => {
+      stepIdx = Math.min(stepIdx + 1, UPLOAD_STEPS.length - 2) // Stop before "complete"
+      setUploadStepIndex(stepIdx)
+    }, 900)
 
     try {
       const formData = new FormData()
       formData.append('file', file)
 
-      setUploadStep('Chunking & embedding...')
       const res = await fetch(`${API_BASE}/upload`, {
         method: 'POST',
         headers: { 'X-User-Id': userId! },
@@ -211,10 +228,10 @@ function App() {
         throw new Error(data.error || 'Upload failed')
       }
 
-      setUploadStep('Indexing in vector database...')
-      await new Promise(r => setTimeout(r, 500))
+      clearInterval(stepInterval)
+      setUploadStepIndex(UPLOAD_STEPS.length - 1) // "Indexing complete!"
+      await new Promise(r => setTimeout(r, 800))
 
-      // Update local docs
       setDocs(prev => [...prev, {
         id: data.docId,
         docName: data.docName,
@@ -223,26 +240,26 @@ function App() {
         textLength: data.textLength
       }])
 
-      // Add confirmation message to current chat
       if (currentChatId) {
         addMessageToChat(currentChatId, {
           id: crypto.randomUUID(),
           role: 'assistant',
-          content: `✅ **${data.docName}** uploaded successfully!\n\nI've analyzed the document and stored it in the database. You can ask me anything about it.`,
+          content: `✅ **${data.docName}** uploaded successfully!\n\n📊 **Indexing summary:**\n- Pages processed: ${data.pageCount}\n- Semantic chunks created: ${data.chunkCount}\n- Total characters: ${data.textLength.toLocaleString()}\n\nThe document has been chunked with metadata (section titles, page numbers, chunk IDs) and stored in the vector database. You can now ask me anything about it.`,
         })
       }
     } catch (err: unknown) {
+      clearInterval(stepInterval)
       const errorMsg = err instanceof Error ? err.message : 'Upload failed'
       setError(errorMsg)
     } finally {
       setIsUploading(false)
-      setUploadStep('')
+      setUploadStepIndex(0)
     }
   }, [currentChatId, userId])
 
   const handleDeleteDoc = async (id: string) => {
     try {
-      const res = await fetch(`${API_BASE}/documents/${id}`, { 
+      const res = await fetch(`${API_BASE}/documents/${id}`, {
         method: 'DELETE',
         headers: { 'X-User-Id': userId! }
       })
@@ -254,7 +271,7 @@ function App() {
     }
   }
 
-  // --- Q&A Execution ---
+  // --- Enhanced Q&A with pipeline visibility ---
   const handleAsk = useCallback(async () => {
     const question = input.trim()
     if (!question || isThinking) return
@@ -283,11 +300,26 @@ function App() {
     addMessageToChat(chatId, userMsg)
     setInput('')
     setIsThinking(true)
+    setThinkingStep('Rewriting query...')
+
+    // Simulate pipeline step messages for UX
+    const steps = [
+      'Rewriting query...',
+      'Generating query variants...',
+      'Running hybrid retrieval...',
+      'Evaluating chunk relevance...',
+      'Generating answer...',
+    ]
+    let stepI = 0
+    const stepInterval = setInterval(() => {
+      stepI = Math.min(stepI + 1, steps.length - 1)
+      setThinkingStep(steps[stepI])
+    }, 1200)
 
     try {
       const res = await fetch(`${API_BASE}/ask`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'X-User-Id': userId!
         },
@@ -297,20 +329,25 @@ function App() {
 
       if (!res.ok) throw new Error(data.error || 'Failed to get answer')
 
+      clearInterval(stepInterval)
+
       const assistantMsg: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
         content: data.answer,
         sources: data.sources,
+        pipeline: data.pipeline,
       }
       addMessageToChat(chatId, assistantMsg)
     } catch (err: unknown) {
+      clearInterval(stepInterval)
       const errorMsg = err instanceof Error ? err.message : 'Failed to get answer'
       setError(errorMsg)
     } finally {
       setIsThinking(false)
+      setThinkingStep('')
     }
-  }, [input, isThinking, docs.length, currentChatId, userId])
+  }, [input, isThinking, docs.length, currentChatId, userId, chats])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -321,6 +358,15 @@ function App() {
 
   const toggleSources = useCallback((msgId: string) => {
     setExpandedSources(prev => {
+      const next = new Set(prev)
+      if (next.has(msgId)) next.delete(msgId)
+      else next.add(msgId)
+      return next
+    })
+  }, [])
+
+  const togglePipeline = useCallback((msgId: string) => {
+    setExpandedPipeline(prev => {
       const next = new Set(prev)
       if (next.has(msgId)) next.delete(msgId)
       else next.add(msgId)
@@ -353,6 +399,7 @@ function App() {
         <div className="header-brand">
           <div className="header-logo">🧠</div>
           <div>DocMind</div>
+          <span className="header-badge">Enhanced RAG</span>
         </div>
         <div className="header-actions">
           <button className="theme-toggle" onClick={toggleTheme}>
@@ -375,8 +422,8 @@ function App() {
                 <div className="empty-text">No chat history</div>
               ) : (
                 chats.map(chat => (
-                  <div 
-                    key={chat.id} 
+                  <div
+                    key={chat.id}
                     className={`sidebar-item ${chat.id === currentChatId ? 'active' : ''}`}
                     onClick={() => switchChat(chat.id)}
                     title={chat.title}
@@ -385,8 +432,8 @@ function App() {
                       <span className="item-icon">💬</span>
                       <span className="item-name">{chat.title}</span>
                     </div>
-                    <button 
-                      className="delete-btn" 
+                    <button
+                      className="delete-btn"
                       onClick={(e) => handleDeleteChat(e, chat.id)}
                       title="Delete chat"
                     >
@@ -404,10 +451,11 @@ function App() {
           <div className="sidebar-section">
             <div className="sidebar-header">
               <span className="sidebar-title">Documents</span>
-              <button 
-                className="add-btn" 
+              <button
+                className="add-btn"
                 onClick={() => fileInputRef.current?.click()}
                 title="Upload Document"
+                disabled={isUploading}
               >
                 +
               </button>
@@ -420,12 +468,12 @@ function App() {
                   const file = e.target.files?.[0]
                   if (file) {
                     handleUpload(file)
-                    e.target.value = '' // Reset input
+                    e.target.value = ''
                   }
                 }}
               />
             </div>
-            
+
             <div className="item-list">
               {docs.length === 0 ? (
                 <div className="empty-text">No documents uploaded.</div>
@@ -434,10 +482,13 @@ function App() {
                   <div key={doc.id} className="sidebar-item" style={{ cursor: 'default' }} title={doc.docName}>
                     <div className="sidebar-item-content">
                       <span className="item-icon">📄</span>
-                      <span className="item-name">{doc.docName}</span>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="item-name">{doc.docName}</div>
+                        <div className="item-meta">{doc.chunkCount} chunks · {doc.pageCount}p</div>
+                      </div>
                     </div>
-                    <button 
-                      className="delete-btn" 
+                    <button
+                      className="delete-btn"
                       onClick={(e) => {
                         e.stopPropagation()
                         handleDeleteDoc(doc.id)
@@ -451,22 +502,55 @@ function App() {
               )}
             </div>
           </div>
+
+          {/* Pipeline Feature Legend */}
+          <div className="pipeline-legend">
+            <div className="legend-title">🚀 Active Features</div>
+            <div className="legend-item">✅ Query Rewriting</div>
+            <div className="legend-item">✅ Multi-Query Generation</div>
+            <div className="legend-item">✅ Hybrid Retrieval (BM25+Vec)</div>
+            <div className="legend-item">✅ LLM-as-a-Judge</div>
+            <div className="legend-item">✅ Corrective RAG Loop</div>
+          </div>
         </aside>
 
         {/* --- Main Chat Area --- */}
         <main className="main-chat-area">
+          {/* §6.8 — Upload progress overlay */}
           {isUploading && (
             <div className="upload-overlay">
-              <div className="spinner" />
-              <div style={{ fontWeight: 500 }}>{uploadStep}</div>
+              <div className="upload-progress-card">
+                <div className="upload-progress-title">📤 Processing Document</div>
+                <div className="upload-steps">
+                  {UPLOAD_STEPS.map((step, i) => (
+                    <div
+                      key={i}
+                      className={`upload-step ${i < uploadStepIndex ? 'done' : i === uploadStepIndex ? 'active' : 'pending'}`}
+                    >
+                      <span className="step-indicator">
+                        {i < uploadStepIndex ? '✓' : i === uploadStepIndex ? '⟳' : '○'}
+                      </span>
+                      <span>{step}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
           <div className="messages-container">
             {activeMessages.length === 0 && (
               <div className="welcome-message">
-                <h2>How can I help you today?</h2>
-                <p>Upload documents in the sidebar and ask me anything about them.</p>
+                <div className="welcome-icon">🧠</div>
+                <h2>DocMind — Enhanced RAG</h2>
+                <p>Upload documents and ask questions. The system automatically<br/>rewrites your queries, uses hybrid retrieval, and validates results.</p>
+                <div className="feature-chips">
+                  <span className="chip">🔧 Query Rewriting</span>
+                  <span className="chip">🔀 Multi-Query</span>
+                  <span className="chip">🔍 BM25 + Vector</span>
+                  <span className="chip">⚖️ LLM Judge</span>
+                  <span className="chip">🔁 Corrective Loop</span>
+                </div>
               </div>
             )}
 
@@ -482,6 +566,54 @@ function App() {
                   <div className="message-content">
                     {renderContent(msg.content)}
                   </div>
+
+                  {/* Pipeline transparency — §6.1/§6.2/§6.5/§6.6 */}
+                  {msg.pipeline && msg.role === 'assistant' && (
+                    <div className="pipeline-info">
+                      <button
+                        className="pipeline-toggle"
+                        onClick={() => togglePipeline(msg.id)}
+                      >
+                        ⚙️ Pipeline details {expandedPipeline.has(msg.id) ? '▲' : '▼'}
+                      </button>
+                      {expandedPipeline.has(msg.id) && (
+                        <div className="pipeline-details">
+                          {msg.pipeline.rewrittenQuery && msg.pipeline.rewrittenQuery !== msg.pipeline.originalQuery && (
+                            <div className="pipeline-row">
+                              <span className="pipeline-label">🔧 Rewritten Query</span>
+                              <span className="pipeline-value">"{msg.pipeline.rewrittenQuery}"</span>
+                            </div>
+                          )}
+                          {msg.pipeline.queriesGenerated && (
+                            <div className="pipeline-row">
+                              <span className="pipeline-label">🔀 Queries Generated</span>
+                              <span className="pipeline-value">{msg.pipeline.queriesGenerated} variants</span>
+                            </div>
+                          )}
+                          {msg.pipeline.chunksRetrieved !== undefined && (
+                            <div className="pipeline-row">
+                              <span className="pipeline-label">🔍 Chunks Retrieved</span>
+                              <span className="pipeline-value">{msg.pipeline.chunksRetrieved} (hybrid BM25+vector)</span>
+                            </div>
+                          )}
+                          {msg.pipeline.chunksAfterJudge !== undefined && (
+                            <div className="pipeline-row">
+                              <span className="pipeline-label">⚖️ After LLM Judge</span>
+                              <span className="pipeline-value">{msg.pipeline.chunksAfterJudge} relevant chunks used</span>
+                            </div>
+                          )}
+                          {msg.pipeline.correctiveAttempts !== undefined && msg.pipeline.correctiveAttempts > 0 && (
+                            <div className="pipeline-row">
+                              <span className="pipeline-label">🔁 Corrective Loops</span>
+                              <span className="pipeline-value">{msg.pipeline.correctiveAttempts} retry attempt(s)</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Sources */}
                   {msg.sources && msg.sources.length > 0 && (
                     <div className="sources">
                       <button
@@ -496,7 +628,12 @@ function App() {
                             <div key={i} className="source-item">
                               <span className="source-page">p.{src.page}</span>
                               <div className="source-preview">
-                                <div><strong>{src.docName}</strong> <span className="source-score">· {(src.score * 100).toFixed(0)}% match</span></div>
+                                <div>
+                                  <strong>{src.docName}</strong>
+                                  {src.section && <span className="source-section"> § {src.section}</span>}
+                                  <span className="source-score"> · {(src.score * 100).toFixed(0)}% match</span>
+                                </div>
+                                {src.chunk_id && <div className="source-chunkid">{src.chunk_id}</div>}
                                 <div>{src.preview}</div>
                               </div>
                             </div>
@@ -514,8 +651,11 @@ function App() {
                 <div className="message-avatar">🧠</div>
                 <div className="message-body">
                   <div className="message-sender">DocMind</div>
-                  <div className="thinking-dots">
-                    <span /><span /><span />
+                  <div className="thinking-container">
+                    <div className="thinking-dots">
+                      <span /><span /><span />
+                    </div>
+                    <div className="thinking-step">{thinkingStep}</div>
                   </div>
                 </div>
               </div>

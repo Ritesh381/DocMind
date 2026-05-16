@@ -29,6 +29,16 @@
   font-size: 18px;
 }
 
+.header-badge {
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.03em;
+}
+
 .header-logo {
   font-size: 20px;
 }
@@ -179,6 +189,14 @@
   font-weight: 500;
 }
 
+.item-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .sidebar-item:hover .delete-btn {
   opacity: 1;
 }
@@ -205,6 +223,31 @@
   text-align: center;
   color: var(--text-muted);
   font-size: 13px;
+}
+
+/* §6.8 — Pipeline Legend in Sidebar */
+.pipeline-legend {
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+  flex-shrink: 0;
+}
+
+.legend-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.legend-item {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 2px 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* --- Chat Area --- */
@@ -235,13 +278,37 @@
   text-align: center;
   color: var(--text-muted);
   animation: fadeIn 0.5s ease-out;
+  gap: 16px;
+}
+
+.welcome-icon {
+  font-size: 52px;
+  margin-bottom: 4px;
 }
 
 .welcome-message h2 {
   font-size: 28px;
   color: var(--text-heading);
-  margin-bottom: 12px;
+  margin-bottom: 0;
   font-weight: 600;
+}
+
+.feature-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.chip {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-weight: 500;
 }
 
 /* --- Messages --- */
@@ -367,6 +434,20 @@
   color: var(--text-muted);
 }
 
+.source-section {
+  font-size: 11px;
+  color: var(--accent-primary);
+  font-weight: 500;
+}
+
+.source-chunkid {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+  margin-bottom: 4px;
+}
+
 /* --- Input Area --- */
 .input-area-container {
   padding: 0 24px 24px;
@@ -441,12 +522,12 @@
   cursor: not-allowed;
 }
 
-/* --- Loading Overlay --- */
+/* --- §6.8 Upload Progress Overlay --- */
 .upload-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(4px);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(6px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -455,7 +536,64 @@
 }
 
 [data-theme='dark'] .upload-overlay {
-  background: rgba(26, 26, 26, 0.8);
+  background: rgba(18, 18, 18, 0.88);
+}
+
+.upload-progress-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px 36px;
+  box-shadow: var(--shadow-md);
+  min-width: 320px;
+}
+
+.upload-progress-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-heading);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.upload-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.upload-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  transition: all 0.3s ease;
+}
+
+.upload-step.pending {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.upload-step.active {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.upload-step.done {
+  color: var(--text-secondary);
+}
+
+.step-indicator {
+  font-size: 14px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.upload-step.active .step-indicator {
+  animation: spin 1s linear infinite;
+  display: inline-block;
 }
 
 .spinner {
@@ -484,22 +622,89 @@
 }
 
 /* --- Thinking Indicator --- */
+.thinking-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+
 .thinking-dots {
   display: flex;
   gap: 6px;
-  padding: 8px 0;
 }
 
 .thinking-dots span {
   width: 6px;
   height: 6px;
-  background: var(--text-muted);
+  background: var(--accent-primary);
   border-radius: 50%;
   animation: pulse 1.4s ease-in-out infinite;
 }
 
 .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
 .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+.thinking-step {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  animation: fadeIn 0.4s ease;
+}
+
+/* --- Pipeline Info (§6.1/§6.2/§6.5/§6.6 transparency) --- */
+.pipeline-info {
+  margin-top: 12px;
+}
+
+.pipeline-toggle {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--transition-fast);
+}
+
+.pipeline-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.pipeline-details {
+  margin-top: 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pipeline-row {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  align-items: flex-start;
+}
+
+.pipeline-label {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  min-width: 160px;
+}
+
+.pipeline-value {
+  color: var(--text-secondary);
+  font-weight: 500;
+  word-break: break-word;
+}
 
 /* Responsive */
 @media (max-width: 768px) {
